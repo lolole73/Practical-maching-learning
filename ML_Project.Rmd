@@ -1,0 +1,106 @@
+---
+title: "Projet Machine Learning"
+author: "Loïc"
+date: "31/05/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(corrplot)
+library(Hmisc)
+set.seed(19553)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import data :  
+
+We import the data into tow dataframes, one for training set and the other for the testing set :   
+
+```{r include=TRUE}
+training<-read.csv("~/pml-training.csv",header=TRUE,sep=",",stringsAsFactors=FALSE)
+testing<-read.csv("~/pml-testing.csv",header=TRUE,sep=",",stringsAsFactors=FALSE)
+```
+
+## Cleaning data :  
+In order to clean the data we delete all columns with missing values.
+And we keep only numerical columns and the variable we want predict (classe).  
+
+```{r include=TRUE}
+
+training<- training[, colSums(is.na(training)) == 0] 
+testing<- testing[, colSums(is.na(testing)) == 0] 
+trainDelete <- grepl("^X|timestamp|window", names(training))
+training <- training[, !trainDelete]
+classe <- training$classe
+trainingCleaned <- training[, sapply(training, is.numeric)]
+trainingCleaned$classe <- classe
+testDelete <- grepl("^X|timestamp|window", names(testing))
+testing <- testing[, !testDelete]
+testingCleaned <- testing[, sapply(testing, is.numeric)]
+```
+
+## Slicing :  
+
+we slice our data after cleaning into trainig data and testing data for validation. 75% of data will be in  the training set, the remained data goes for the testing set.  
+
+```{r include=TRUE}
+inTrain <- createDataPartition(trainingCleaned$classe, p=0.75, list=FALSE)
+DataTrain <- trainingCleaned[inTrain, ]
+DataTest <- trainingCleaned[-inTrain, ]
+```
+
+## Building our model :
+Our model based on 6 folds cross validation to apply the decision tree algorithm to predict classe with all others variables.  
+
+```{r  echo=TRUE}
+control <- trainControl(method="cv", 6)
+modelFit <- train(classe ~ ., data=DataTrain, method="rpart", trControl=control)
+modelFit$finalModel
+```
+
+We test our model on test data :  
+
+```{r  echo=TRUE}
+predictions <- predict(modelFit, DataTest)
+DataTest$classe <- as.factor(DataTest$classe)
+confusionMatrix(DataTest$classe,predictions)
+```
+
+
+
+## Accuracy/ Out of sample error :  
+
+```{r  echo=TRUE}
+accuracy <- postResample(predictions, DataTest$classe)
+OutSimplError <- 1 - as.numeric(confusionMatrix(DataTest$classe, predictions)$overall[1])
+```
+
+The accuracy of our model is 49.67% and the estimated out-of-sample error is 0.50%.  
+
+## Prediction test :  
+
+we apply our prediction to initial data set :     
+```{r  echo=TRUE}
+pred <- predict(modelFit, testingCleaned[, -53])
+pred
+```
+
+
+## Plots :
+
++ Tree decision :  
+```{r  echo=FALSE}
+prp(modelFit$finalModel)
+```
+
++ Plot of Total accel belt by each classe :  
+  
+
+```{r  echo=FALSE}
+qplot(total_accel_belt,colour=classe,data = training,geom="density")
+```
+
