@@ -103,4 +103,38 @@ prp(modelFit$finalModel)
 ```{r  echo=FALSE}
 qplot(total_accel_belt,colour=classe,data = training,geom="density")
 ```
+## Description of dataset :
 
+
+Selection rows with total_accel_arm > 30 :    
+
+```{r  echo=TRUE}
+d1 <- dplyr::filter(trainingCleaned, trainingCleaned$total_accel_arm > 50)
+```
+
+All positive meseaurs of accel_belt  :  
+
+```{r  echo=TRUE}
+d2 <- dplyr::filter(trainingCleaned, trainingCleaned$accel_belt_x > 0 & trainingCleaned$accel_belt_y > 0 & trainingCleaned$accel_belt_z > 0)
+```
+
+Sort ascending on total_accel_arm :  
+
+```{r  echo=TRUE}
+d3 <- dplyr::arrange(trainingCleaned,trainingCleaned$total_accel_arm)
+```
+
+Grouping rows with each classe in condition to total_accel_arm be the max, after that we select columns of classe and  total_accel_arm :  
+
+```{r  echo=TRUE}
+d4 <- trainingCleaned %>% 
+    group_by(classe) %>% 
+    filter(total_accel_arm == max(total_accel_arm), na.rm = TRUE) %>% select(classe,total_accel_arm)
+```
+
+Number of observations of each group of classe and participant :
+
+```{r  echo=TRUE}
+d5 <- training %>% 
+  group_by(user_name, classe) %>%   tally
+```
